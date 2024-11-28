@@ -3,7 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
 const cors = require('cors'); // Import cors
-const adminRoutes = require('./routes/AdminRoute'); // Adjust the path if necessary
+const adminRoutes = require('./routes/AdminRoute'); 
+const studentRoutes = require('./routes/StudentRoute');
 
 // Load environment variables
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(bodyParser.json()); // Middleware to parse incoming JSON requests
 
 // Use admin routes
 app.use('/admin', adminRoutes);
+app.use('/student', studentRoutes)
 
 // Start the server
 app.listen(PORT, () => {
