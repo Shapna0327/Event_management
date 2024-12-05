@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useDropzone } from "react-dropzone";
 import baseURL from "../../../auth/connection";
 
 function AddEvent() {
@@ -13,6 +14,8 @@ function AddEvent() {
     eventCoordinatorPhone: "",
     studentCoordinatorName: "",
     studentCoordinatorPhone: "",
+    eventDescription: "",
+    eventFiles: [], // Store uploaded files
   });
 
   // Handle input changes
@@ -24,21 +27,79 @@ function AddEvent() {
     }));
   };
 
+  // Handle file drop
+  const onDrop = (acceptedFiles, rejectedFiles) => {
+    acceptedFiles.forEach((file) => {
+      console.log("Accepted file:", file.name, file.type); // Log file name and MIME type
+    });
+
+    // Set the uploaded files to form data
+    setFormData((prevData) => ({
+      ...prevData,
+      eventFiles: [...prevData.eventFiles, ...acceptedFiles],
+    }));
+
+    // Handle rejected files (invalid types or too large)
+    rejectedFiles.forEach((file) => {
+      console.log("Rejected file:", file.name, file.type); // Log rejected file details
+    });
+  };
+
+  // Set up dropzone to accept specific file types
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop,
+    accept: ['image/jpeg', 'image/png', 'application/pdf'], // Only images and PDFs
+    multiple: true, // Allow multiple files
+    onDropRejected: (rejectedFiles) => {
+      rejectedFiles.forEach((file) => {
+        console.error("Rejected file due to invalid MIME type:", file.name);
+      });
+    },
+  });
+  
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+  
+    const form = new FormData();
+    // Append regular form data
+    for (const key in formData) {
+      if (key !== "eventFiles") {
+        form.append(key, formData[key]);
+      }
+    }
+  
+    // Append files to FormData
+    formData.eventFiles.forEach((file) => {
+      form.append("files", file);
+    });
+  
     try {
       const response = await fetch(`${baseURL}/admin/add-event`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        body: form,
       });
   
       if (response.ok) {
         const data = await response.json();
-        alert("Event added successfully: " + data.eventId);
+        // Show success alert with event ID
+        alert("Event added successfully. Event ID: " + data.eventId);
+        // Optionally, you can clear the form or redirect the user
+        setFormData({
+          fromTime: "",
+          toTime: "",
+          date: "",
+          day: "",
+          venue: "",
+          eventName: "",
+          eventCoordinatorName: "",
+          eventCoordinatorPhone: "",
+          studentCoordinatorName: "",
+          studentCoordinatorPhone: "",
+          eventDescription: "",
+          eventFiles: [],
+        });
       } else {
         const errorData = await response.json();
         alert("Failed to add event: " + errorData.message);
@@ -164,6 +225,31 @@ function AddEvent() {
           />
         </div>
 
+        <div style={inputGroupStyles}>
+          <label>Event Description:</label>
+          <textarea
+            name="eventDescription"
+            value={formData.eventDescription}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+
+        <div style={inputGroupStyles}>
+          <label>Event Files (Drag and Drop):</label>
+          <div {...getRootProps()} style={dropzoneStyles}>
+            <input {...getInputProps()} />
+            <p>Drag & drop some files here, or click to select files</p>
+          </div>
+          <div>
+            <ul>
+              {formData.eventFiles.map((file, index) => (
+                <li key={index}>{file.name}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
         <div>
           <button type="submit" style={buttonStyles}>
             Submit
@@ -194,6 +280,14 @@ const buttonStyles = {
   borderRadius: "5px",
   cursor: "pointer",
   fontSize: "16px",
+};
+
+const dropzoneStyles = {
+  border: "2px dashed #ccc",
+  padding: "20px",
+  textAlign: "center",
+  cursor: "pointer",
+  marginBottom: "10px",
 };
 
 export default AddEvent;

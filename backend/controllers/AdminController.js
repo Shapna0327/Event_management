@@ -50,9 +50,11 @@ exports.addStudent = async (req, res) => {
 
 // Controller to handle adding an event
 exports.addEvent = async (req, res) => {
+  try {
     const eventData = req.body;
-  
-    // Input validation (can be extended further)
+    const files = req.files;
+
+    // Input validation
     const requiredFields = [
       "fromTime",
       "toTime",
@@ -60,23 +62,39 @@ exports.addEvent = async (req, res) => {
       "day",
       "venue",
       "eventName",
+      "eventDescription",
       "eventCoordinatorName",
       "eventCoordinatorPhone",
       "studentCoordinatorName",
       "studentCoordinatorPhone",
     ];
-  
+
     for (const field of requiredFields) {
       if (!eventData[field]) {
         return res.status(400).json({ message: `${field} is required` });
       }
     }
-  
-    try {
-      const result = await adminModel.addEvent(eventData);
-      res.status(201).json({ message: "Event added successfully", eventId: result.insertId });
-    } catch (error) {
-      console.error("Error in adding event:", error);
-      res.status(500).json({ message: "Failed to add event", error });
+
+    // Add event and get the inserted ID
+    const result = await adminModel.addEvent(eventData);
+
+    // Handle uploaded files if any
+    if (files && files.length > 0) {
+      const fileDetails = files.map((file) => ({
+        eventId: result.insertId,
+        fileName: file.filename,
+        filePath: file.path,
+        fileType: file.mimetype,
+      }));
+      await adminModel.addEventFiles(fileDetails);
     }
-  };
+
+    // Return the event ID and success message
+    res.status(201).json({ message: "Event added successfully", eventId: result.insertId });
+  } catch (error) {
+    console.error("Error in adding event:", error);
+    res.status(500).json({ message: "Failed to add event", error });
+  }
+};
+
+
